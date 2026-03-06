@@ -1,5 +1,6 @@
 import express from "express"
-import { addService, getServices } from "./services/serviceRegistry"
+import { addService, getServices } from "./Services/serviceRegistry"
+import { startHealthChecker } from "./Services/healthChecker"
 
 const app = express()
 
@@ -19,12 +20,30 @@ app.get("/health", (req, res) => {
   })
 })
 
-app.post("/services", (req, res) => {
+app.post("/services", async (req, res) => {
+
   const { name, url } = req.body
 
-  const service = addService(name, url)
+  if (!name || !url) {
+    return res.status(400).json({
+      error: "name and url are required"
+    })
+  }
 
-  res.json(service)
+  try {
+
+    const service = addService(name, url)
+
+    res.status(201).json(service)
+
+  } catch (error) {
+
+    res.status(400).json({
+      error: (error as Error).message
+    })
+
+  }
+
 })
 
 app.get("/services", (req, res) => {
@@ -34,5 +53,10 @@ app.get("/services", (req, res) => {
 const PORT = 3000
 
 app.listen(PORT, () => {
+
   console.log(`Server running on port ${PORT}`)
+
+  // start health monitoring loop
+  startHealthChecker()
+
 })
