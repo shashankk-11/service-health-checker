@@ -1,5 +1,6 @@
 export type Service = {
-  id: number
+  id: string // MongoDB ObjectId as string
   name: string
   url: string
+  status?: string
 }

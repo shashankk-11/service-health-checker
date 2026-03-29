@@ -1,42 +1,48 @@
-import { pool } from "../db/database"
+import { connectToDatabase, getDb } from "../db/database"
 import type { Service } from "../types/Service"
+import { ObjectId } from "mongodb"
+
 
 export async function addService(name: string, url: string): Promise<Service> {
-
-  const result = await pool.query(
-    "INSERT INTO services(name, url) VALUES($1,$2) RETURNING *",
-    [name, url]
-  )
-
-  return result.rows[0]
+  await connectToDatabase()
+  const db = getDb()
+  const result = await db.collection("services").insertOne({ name, url })
+  return {
+    id: result.insertedId.toString(),
+    name,
+    url
+  } as Service
 }
+
 
 export async function getServices(): Promise<Service[]> {
-
-  const result = await pool.query("SELECT * FROM services")
-
-  return result.rows
+  await connectToDatabase()
+  const db = getDb()
+  const services = await db.collection("services").find().toArray()
+  // Map _id to id for compatibility
+  return services.map((s: any) => ({
+    id: s._id.toString(),
+    name: s.name,
+    url: s.url,
+    status: s.status
+  }))
 }
+
 
 export async function updateServiceStatus(
-  id: number,
+  id: string,
   status: string
 ): Promise<void> {
-
-  await pool.query(
-    `UPDATE services
-     SET status = $1
-     WHERE id = $2`,
-    [status, id]
+  await connectToDatabase()
+  const db = getDb()
+  await db.collection("services").updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { status } }
   )
-
 }
 
-// export async function removeService(id: number): Promise<void> {
-
-//   await pool.query(
-//     "DELETE FROM services WHERE id = $1",
-//     [id]
-//   )
-
+// export async function removeService(id: string): Promise<void> {
+//   await connectToDatabase()
+//   const db = getDb()
+//   await db.collection("services").deleteOne({ _id: new ObjectId(id) })
 // }
