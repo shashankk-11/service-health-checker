@@ -40,9 +40,3 @@ export async function updateServiceStatus(
     { $set: { status } }
   )
 }
-
-// export async function removeService(id: string): Promise<void> {
-//   await connectToDatabase()
-//   const db = getDb()
-//   await db.collection("services").deleteOne({ _id: new ObjectId(id) })
-// }
