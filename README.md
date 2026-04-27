@@ -1,102 +1,104 @@
+# Service Health Checker (SRE-Ready)
 
-# Service Health Checker
+## Overview
 
-A simple service registry and health monitoring tool built with **TypeScript, Express, MongoDB Atlas, and Bun**.
+A production-inspired service registry and health monitoring system
+built with: - TypeScript - Express - MongoDB Atlas - Bun - Prometheus
 
-It allows services to register themselves and automatically checks if they are healthy.
-
----
-
-
-## What This Project Does
-
-- Register services with a name and URL
-- Store services in **MongoDB Atlas**
-- Periodically check each service's health
-- Update service status as **UP** or **DOWN**
-
----
-
-
-## How It Works
-
-1. A service registers itself using the API.
-2. The service is stored in the MongoDB Atlas database.
-3. A health checker runs every few seconds.
-4. It calls the service's `/health` endpoint.
-5. The service status is updated in the database.
-
-Example service record:
-
-| id (ObjectId) | name | url | status |
-|----|------|-----|--------|
-| 64f... | user-service | http://localhost:4000 | UP |
-
-Database
-
-Services are stored in MongoDB Atlas with the following fields:
-
-- id (ObjectId as string)
-- name
-- url
-- status
-
----
-
+------------------------------------------------------------------------
 
 ## Architecture
-Client / Service
-  │
-Service Registry API
-(Express + Bun)
-  │
-MongoDB Atlas (Cloud)
-  │
-Health Checker
-  │
-Updates Service Status
 
-docker compose -f docker/docker-compose.yml up -d
-bun src/server.ts
+            +----------------------+
+            |   Client / Service   |
+            +----------+-----------+
+                       |
+                       v
+            +----------------------+
+            | Service Registry API |
+            |     (Express)        |
+            +----------+-----------+
+                       |
+                       v
+            +----------------------+
+            |   MongoDB Atlas      |
+            +----------+-----------+
+                       |
+                       v
+            +----------------------+
+            |  Health Checker Job  |
+            +----------+-----------+
+                       |
+            +----------+-----------+
+            |                      |
+            v                      v
+    +---------------+     +------------------+
+    | Update Status |     | Prometheus Logs  |
+    +---------------+     +------------------+
 
-## Running the Project
+------------------------------------------------------------------------
 
-1. Set up your `.env` file with your MongoDB Atlas connection string:
+## Features
 
-```
-MONGODB_URI=your-mongodb-atlas-connection-string
-DB_NAME=service_registry
-```
+-   Service registration
+-   Health monitoring
+-   Deployment simulation
+-   Failure simulation
+-   Metrics collection
 
-2. Start the Server
+------------------------------------------------------------------------
 
-```
-bun src/server.ts
-```
+## API Endpoints
 
-Server runs at:
-http://localhost:3000
+### Register Service
 
-3. Register a Service
+POST /services
 
-Example:
+### Get Services
 
-Invoke-RestMethod -Uri http://localhost:3000/services `
-  -Method POST `
-  -ContentType "application/json" `
-  -Body '{"name":"user-service","url":"http://localhost:4000"}'
+GET /services
 
-View Registered Services
+### Deploy Service
 
-Example:
-GET http://localhost:3000/services
+POST /deploy
 
-Example response:
-[
-  {
-    "id": "64f...",
-    "name": "user-service",
-    "url": "http://localhost:4000",
-    "status": "UP"
-  }
-]
+### Simulate Failure
+
+POST /simulate-failure
+
+### Metrics
+
+GET /metrics
+
+------------------------------------------------------------------------
+
+## Example Service Object
+
+    {
+      "name": "test-service",
+      "status": "UP",
+      "version": "v2.0.0"
+    }
+
+------------------------------------------------------------------------
+
+## SRE Concepts
+
+-   Observability
+-   Failure Injection
+-   Monitoring
+-   Reliability Engineering
+
+------------------------------------------------------------------------
+
+## Run Instructions
+
+1.  Install dependencies
+2.  Setup .env
+3.  Run: bun run dev
+
+------------------------------------------------------------------------
+
+## Author
+
+Shashank Kulkarni

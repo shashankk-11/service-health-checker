@@ -3,20 +3,36 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
-const uri = process.env.MONGODB_URI || ""
+const rawUri = process.env.MONGODB_URI
 const dbName = process.env.DB_NAME || "service_registry"
 
-let client: MongoClient
-let db: Db
+if (!rawUri) {
+  throw new Error("MONGODB_URI is not defined in environment variables")
+}
 
-export async function connectToDatabase() {
-  if (!client) {
-    client = new MongoClient(uri)
-    await client.connect()
+const uri: string = rawUri
+
+let client: MongoClient | null = null
+let db: Db | null = null
+
+export async function connectToDatabase(): Promise<Db> {
+
+  if (db) return db
+
+  try {
+    if (!client) {
+      client = new MongoClient(uri) 
+      await client.connect()
+      console.log("Connected to MongoDB Atlas")
+    }
+
     db = client.db(dbName)
-    console.log("Connected to MongoDB Atlas")
+    return db
+
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw new Error("Failed to connect to database")
   }
-  return db
 }
 
 export function getDb(): Db {
