@@ -1,13 +1,17 @@
+# Use Bun runtime
 FROM oven/bun:1
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
-
+# Install deps
+COPY package.json bun.lockb ./
 RUN bun install
 
+# Copy source
 COPY . .
 
+# Expose app port
 EXPOSE 3000
 
-CMD ["bun", "run", "src/server.ts"]
+# Start app
+CMD ["bun", "src/index.ts"]
