@@ -4,23 +4,33 @@ on:
   push:
     branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  build-test-docker:
+  build-test-lint:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Setup Bun
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
 
+      # Install dependencies
       - name: Install dependencies
         run: bun install
 
+      # Run lint (Biome)
+      - name: Run lint
+        run: bun run lint
+
+      # Run tests
       - name: Run tests
         run: bun test
 
+      # Build Docker image
       - name: Build Docker image
         run: docker build -t service-health-checker .
