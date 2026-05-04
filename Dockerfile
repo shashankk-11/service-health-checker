@@ -4,7 +4,7 @@ FROM oven/bun:1
 WORKDIR /app
 
 # Install deps
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install
 
 # Copy source
