@@ -1,0 +1,33 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd service-health-checker || git clone https://github.com/shashankk-11/service-health-checker.git
+            cd service-health-checker
+            git pull origin main
+
+            docker stop service-health-checker || true
+            docker rm service-health-checker || true
+
+            docker build -t service-health-checker .
+
+            docker run -d \
+              --name service-health-checker \
+              -p 3000:3000 \
+              -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+              -e DB_NAME="${{ secrets.DB_NAME }}" \
+              service-health-checker
