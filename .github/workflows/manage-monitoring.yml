@@ -1,0 +1,36 @@
+name: Manage Monitoring Services
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Start or Stop Monitoring"
+        required: true
+        type: choice
+        options:
+          - start
+          - stop
+
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run commands on EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "Action: ${{ github.event.inputs.action }}"
+
+            if [ "${{ github.event.inputs.action }}" = "start" ]; then
+              echo "Starting Prometheus & Grafana..."
+              sudo systemctl start prometheus
+              sudo systemctl start grafana-server
+            else
+              echo "Stopping Prometheus & Grafana..."
+              sudo systemctl stop grafana-server
+              sudo systemctl stop prometheus
+            fi
