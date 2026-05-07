@@ -46,6 +46,51 @@ built with:
 
 ---
 
+## Full System Architecture (infra + monitoring)
+
+                         ┌──────────────────────┐
+                         │      End User        │
+                         │ (Browser / Client)   │
+                         └─────────┬────────────┘
+                                   │
+                                   │ HTTP (Port 80)
+                                   ▼
+                         ┌──────────────────────┐
+                         │        Nginx         │
+                         │   Reverse Proxy      │
+                         └─────────┬────────────┘
+                                   │
+                                   │ Routes to App
+                                   ▼
+                         ┌──────────────────────┐
+                         │   Node.js Service    │
+                         │ Service Health API   │
+                         │    (Docker :3000)    │
+                         └─────────┬────────────┘
+                                   │
+                 ┌─────────────────┼─────────────────┐
+                 │                 │                 │
+                 ▼                 ▼                 ▼
+        ┌────────────────┐  ┌───────────────┐  ┌──────────────────┐
+        │ MongoDB Atlas  │  │ /metrics API  │  │ Health Checker   │
+        │ (Service Data) │  │ (Prometheus)  │  │ Background Job   │
+        └────────────────┘  └──────┬────────┘  └────────┬─────────┘
+                                   │                    │
+                                   │ Scrapes Metrics    │ Updates Status
+                                   ▼                    ▼
+                         ┌──────────────────────┐
+                         │     Prometheus       │
+                         │   (Port 9090)        │
+                         └─────────┬────────────┘
+                                   │
+                                   │ Query Metrics
+                                   ▼
+                         ┌──────────────────────┐
+                         │       Grafana        │
+                         │   (Port 3001)        │
+                         │   Dashboards UI      │
+                         └──────────────────────┘
+
 ## 🌐 Live Demo
 
 The application is deployed on AWS EC2 and accessible via:
@@ -286,6 +331,80 @@ Includes:
 Compatible with Prometheus and Grafana.
 
 ---
+
+---
+
+## 📊 Observability Stack (Prometheus + Grafana)
+
+The project has been extended with a complete observability setup using Prometheus and Grafana for real-time monitoring.
+
+---
+
+### 🔹 Prometheus (Metrics Collection)
+
+- Scrapes application metrics from `/metrics`
+- Configured as a systemd service on AWS EC2
+- Handles time-series storage of application metrics
+
+Access Prometheus UI:
+
+http://65.0.129.205:9090
+
+---
+
+### 🔹 Grafana (Metrics Visualization)
+
+- Connected to Prometheus as a data source
+- Used to build real-time dashboards
+- Runs as a systemd service on EC2
+
+Access Grafana UI:
+
+http://65.0.129.205:3001
+
+Default login:
+- Username: admin
+- Password: admin
+
+---
+
+## 📈 Grafana Dashboard
+
+A custom dashboard was created to monitor application health and system performance.
+
+### Panels Included
+
+- **Total Health Checks**
+  - Tracks number of health checks over time
+  - Validates health checker execution
+
+- **Memory Usage**
+  - Displays application memory consumption
+  - Helps detect abnormal usage patterns
+
+- **CPU Usage**
+  - Tracks CPU utilization of the service
+  - Useful for performance analysis
+
+---
+
+## 🔄 Monitoring Flow
+
+Application → /metrics → Prometheus → Grafana Dashboard
+
+---
+
+## ⚙️ Running Services (EC2)
+
+| Service     | Port | Description                      |
+|------------|------|----------------------------------|
+| Application | 3000 | Node.js service (Docker)        |
+| Nginx       | 80   | Reverse proxy                   |
+| Prometheus  | 9090 | Metrics collection              |
+| Grafana     | 3001 | Metrics visualization           |
+
+---
+
 
 ## SRE Concepts Applied
 
