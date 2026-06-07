@@ -1,433 +1,210 @@
-# Service Health Checker (SRE-Ready)
+# Service Health Checker
 
-## Overview
+A production-grade service registry and health monitoring platform built with TypeScript and Bun. Tracks availability and response times of registered services, exposes Prometheus-compatible metrics, and visualises them via Grafana — deployed on AWS EC2 behind Nginx.
 
-A production-inspired service registry and health monitoring system
-built with:
+> This project is the application layer for [eks-gitops-platform](https://github.com/shashankk-11/eks-gitops-platform) — a companion repo that deploys this service onto Kubernetes via Terraform and ArgoCD.
 
-* TypeScript
-* Express
-* MongoDB Atlas
-* Bun
-* Prometheus
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Runtime | Bun + TypeScript |
+| Framework | Express |
+| Database | MongoDB Atlas |
+| Metrics | Prometheus client |
+| Visualisation | Grafana |
+| Container | Docker (multi-stage, non-root) |
+| Reverse proxy | Nginx |
+| CI/CD | GitHub Actions → GHCR |
+| Cloud | AWS EC2 |
 
 ---
 
 ## Architecture
 
 ```
-        +----------------------+
-        |   Client / Service   |
-        +----------+-----------+
-                   |
-                   v
-        +----------------------+
-        | Service Registry API |
-        |     (Express)        |
-        +----------+-----------+
-                   |
-                   v
-        +----------------------+
-        |   MongoDB Atlas      |
-        +----------+-----------+
-                   |
-                   v
-        +----------------------+
-        |  Health Checker Job  |
-        +----------+-----------+
-                   |
-        +----------+-----------+
-        |                      |
-        v                      v
-+---------------+     +------------------+
-| Update Status |     | Prometheus Logs  |
-+---------------+     +------------------+
+Client
+  │
+  ▼ HTTP :80
+Nginx (reverse proxy)
+  │
+  ▼ :3000
+Express API (Docker)
+  ├── MongoDB Atlas      ← service registry storage
+  ├── Health Checker Job ← background polling loop
+  └── /metrics           ← Prometheus scrape target
+                              │
+                         Prometheus :9090
+                              │
+                           Grafana :3001
 ```
 
 ---
 
-## Full System Architecture (infra + monitoring)
+## Live Demo
 
-                         ┌──────────────────────┐
-                         │      End User        │
-                         │ (Browser / Client)   │
-                         └─────────┬────────────┘
-                                   │
-                                   │ HTTP (Port 80)
-                                   ▼
-                         ┌──────────────────────┐
-                         │        Nginx         │
-                         │   Reverse Proxy      │
-                         └─────────┬────────────┘
-                                   │
-                                   │ Routes to App
-                                   ▼
-                         ┌──────────────────────┐
-                         │   Node.js Service    │
-                         │ Service Health API   │
-                         │    (Docker :3000)    │
-                         └─────────┬────────────┘
-                                   │
-                 ┌─────────────────┼─────────────────┐
-                 │                 │                 │
-                 ▼                 ▼                 ▼
-        ┌────────────────┐  ┌───────────────┐  ┌──────────────────┐
-        │ MongoDB Atlas  │  │ /metrics API  │  │ Health Checker   │
-        │ (Service Data) │  │ (Prometheus)  │  │ Background Job   │
-        └────────────────┘  └──────┬────────┘  └────────┬─────────┘
-                                   │                    │
-                                   │ Scrapes Metrics    │ Updates Status
-                                   ▼                    ▼
-                         ┌──────────────────────┐
-                         │     Prometheus       │
-                         │   (Port 9090)        │
-                         └─────────┬────────────┘
-                                   │
-                                   │ Query Metrics
-                                   ▼
-                         ┌──────────────────────┐
-                         │       Grafana        │
-                         │   (Port 3001)        │
-                         │   Dashboards UI      │
-                         └──────────────────────┘
-
-## 🌐 Live Demo
-
-The application is deployed on AWS EC2 and accessible via:
-
-```
-http://65.0.129.205
-```
-
-### Available Endpoints
-
-* Health Check → `http://65.0.129.205/health`
-* Services → `http://65.0.129.205/services`
-* Metrics → `http://65.0.129.205/metrics`
-
-> Note: The application is exposed via Nginx (port 80) acting as a reverse proxy to the containerized service running on port 3000.
+| Endpoint | URL |
+|---|---|
+| App | http://65.0.129.205 |
+| Health | http://65.0.129.205/health |
+| Services | http://65.0.129.205/services |
+| Metrics | http://65.0.129.205/metrics |
+| Prometheus | http://65.0.129.205:9090 |
+| Grafana | http://65.0.129.205:3001 |
 
 ---
 
-## 🧪 How to Use
+## API Reference
 
-Follow these steps to try the system live:
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | Service info |
+| GET | `/health` | Liveness check |
+| GET | `/ready` | Readiness check |
+| POST | `/services` | Register a service |
+| GET | `/services` | List all services |
+| POST | `/start-health-checker` | Start background polling |
+| POST | `/stop-health-checker` | Stop background polling |
+| GET | `/health-report` | Latest health check results |
+| POST | `/deploy` | Simulate a deployment |
+| GET | `/metrics` | Prometheus metrics |
 
 ---
 
-### 1️⃣ Check Application Health
+## Quickstart (local)
+
+**Prerequisites:** Bun, Docker, MongoDB Atlas URI
 
 ```bash
-curl http://65.0.129.205/health
-```
-
----
-
-### 2️⃣ Register a Service
-
-```bash
-curl -X POST http://65.0.129.205/services \
--H "Content-Type: application/json" \
--d '{"name":"google","url":"https://google.com"}'
-```
-
----
-
-### 3️⃣ View Registered Services
-
-```bash
-curl http://65.0.129.205/services
-```
-
----
-
-### 4️⃣ Start Health Monitoring
-
-```bash
-curl -X POST http://65.0.129.205/start-health-checker
-```
-
----
-
-### 5️⃣ Check Metrics
-
-```bash
-curl http://65.0.129.205/metrics
-```
-
----
-
-### 6️⃣ Simulate Deployment
-
-```bash
-curl -X POST http://65.0.129.205/deploy \
--H "Content-Type: application/json" \
--d '{"name":"google"}'
-```
-
----
-
-### 7️⃣ Stop Health Monitoring
-
-```bash
-curl -X POST http://65.0.129.205/stop-health-checker
-```
----
-
-## 💡 Expected Flow
-
-```text
-Register Service → Start Health Checker → Monitor Status → View Metrics
-```
-
-
-## Features
-
-* Service registration & discovery
-* Automated health checks with response time tracking
-* Deployment simulation (version updates)
-* Prometheus-compatible metrics endpoint
-* Containerized using Docker
-* Reverse proxy using Nginx
-* CI/CD pipeline with GitHub Actions
-* Cloud deployment on AWS EC2
-
----
-
-## API Endpoints
-
-| Method | Endpoint                | Description                                 |
-| ------ | ----------------------- | ------------------------------------------- |
-| GET    | `/`                     | Service info                                |
-| GET    | `/health`               | Application health                          |
-| POST   | `/services`             | Register a new service                      |
-| GET    | `/services`             | List all services                           |
-| POST   | `/deploy`               | Simulate deployment (requires request body) |
-| POST   | `/start-health-checker` | Start background health checks              |
-| POST   | `/stop-health-checker`  | Stop health checks                          |
-| GET    | `/metrics`              | Prometheus metrics                          |
-
----
-
-## Example Service Object
-
-```
-{
-  "name": "test-service",
-  "status": "UP",
-  "version": "v2.0.0"
-}
-```
-
----
-
-## Example Requests
-
-### Register Service
-
-```
-curl -X POST http://localhost/services \
--H "Content-Type: application/json" \
--d '{"name":"test","url":"https://google.com"}'
-```
-
-### Deploy Service
-
-```
-curl -X POST http://localhost/deploy \
--H "Content-Type: application/json" \
--d '{"name":"google"}'
-```
-
-### Start Health Checker
-
-```
-curl -X POST http://localhost/start-health-checker
-```
-
-### Stop Health Checker
-
-```
-curl -X POST http://localhost/stop-health-checker
-```
-
----
-
-## Local Setup
-
-1. Install dependencies
-2. Create `.env` file
-3. Run:
-
-```
+git clone https://github.com/shashankk-11/service-health-checker.git
+cd service-health-checker
+cp .env.example .env          # add your MONGODB_URI
 bun install
 bun run dev
 ```
 
+### Run with Docker
+
+```bash
+docker pull ghcr.io/shashankk-11/service-health-checker:latest
+docker run -p 3000:3000 \
+  -e MONGODB_URI=your_uri \
+  -e DB_NAME=service_registry \
+  ghcr.io/shashankk-11/service-health-checker:latest
+```
+
+### Environment variables
+
+```bash
+MONGODB_URI=mongodb+srv://...   # required in production
+DB_NAME=service_registry        # optional, defaults to service_registry
+```
+
+> In test environments (`NODE_ENV=test`) the DB connection is skipped automatically — no dummy credentials needed.
+
 ---
 
-## Docker Usage
+## Usage
 
+### Register a service
+
+```bash
+curl -X POST http://localhost:3000/services \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-api", "url": "https://example.com"}'
 ```
-docker build -t service-health-checker .
-docker run -p 3000:3000 service-health-checker
+
+### Start health monitoring
+
+```bash
+curl -X POST http://localhost:3000/start-health-checker
+```
+
+### Check results
+
+```bash
+curl http://localhost:3000/health-report
+```
+
+### View Prometheus metrics
+
+```bash
+curl http://localhost:3000/metrics
 ```
 
 ---
 
-## Deployment (AWS EC2)
+## Observability
 
-* Provision EC2 instance
-* Install Docker & Nginx
-* Run containerized application
-* Configure Nginx as reverse proxy
-* Expose service via port 80
+Prometheus scrapes `/metrics` every 15 seconds. Grafana is connected as a data source and provides dashboards for:
+
+- Health check pass/fail counters per service
+- Response time tracking
+- Application memory and CPU usage
+- Event loop lag
+
+Metrics are exposed using the official `prom-client` library and are fully compatible with any Prometheus-based stack.
 
 ---
 
 ## CI/CD Pipeline
 
-### Continuous Integration (CI)
-
-* Runs on pull requests & push to main
-* Linting (Biome)
-* Unit testing (Bun)
-* Docker build validation
-
-### Continuous Deployment (CD)
-
-* Manual trigger using `workflow_dispatch`
-* SSH into EC2
-* Pull latest code
-* Rebuild Docker image
-* Restart container
-
----
-
-## Environment Variables
+### CI (on every PR and push to main)
 
 ```
-MONGODB_URI=your_mongodb_uri
-DB_NAME=service_registry
+Checkout → Install deps → Lint (Biome) → Test (Bun) → Docker build
 ```
 
----
+- Tests run with `NODE_ENV=test` — DB layer is skipped, all dependencies mocked
+- Docker image is built on every run to catch `Dockerfile` regressions early
 
-## Metrics
-
-Metrics exposed at:
+### CD (on merge to main)
 
 ```
-/metrics
+Build multi-stage Docker image → Push to GHCR with :latest and :sha tags
 ```
 
-Includes:
+Image published at: `ghcr.io/shashankk-11/service-health-checker`
 
-* Health check counters
-* Failure counters
-* CPU & memory metrics
-* Event loop metrics
-
-Compatible with Prometheus and Grafana.
+The SHA tag (e.g. `:sha-a1b2c3d`) is what gets referenced in the GitOps platform repo for immutable, traceable deployments.
 
 ---
 
----
+## Docker image
 
-## 📊 Observability Stack (Prometheus + Grafana)
+The Dockerfile uses a two-stage build:
 
-The project has been extended with a complete observability setup using Prometheus and Grafana for real-time monitoring.
+- `deps` stage: installs only production dependencies with `--frozen-lockfile`
+- `runner` stage: copies only `node_modules` and `src/` — no source maps, no dev tools, no test files
 
----
-
-### 🔹 Prometheus (Metrics Collection)
-
-- Scrapes application metrics from `/metrics`
-- Configured as a systemd service on AWS EC2
-- Handles time-series storage of application metrics
-
-Access Prometheus UI:
-
-http://65.0.129.205:9090
+Final image runs as the non-root `bun` user.
 
 ---
 
-### 🔹 Grafana (Metrics Visualization)
+## SRE concepts demonstrated
 
-- Connected to Prometheus as a data source
-- Used to build real-time dashboards
-- Runs as a systemd service on EC2
-
-Access Grafana UI:
-
-http://65.0.129.205:3001
-
-Default login:
-- Username: admin
-- Password: admin
+- **Liveness vs readiness** — separate `/health` and `/ready` endpoints
+- **Observability** — Prometheus metrics + Grafana dashboards
+- **Failure detection** — background health checker with status tracking
+- **Immutable deployments** — Docker image tagged by git SHA
+- **Test isolation** — DB layer fully mocked, no real credentials in CI
+- **Containerisation** — multi-stage build, non-root user, minimal image
 
 ---
 
-## 📈 Grafana Dashboard
+## What's next
 
-A custom dashboard was created to monitor application health and system performance.
+This project is intentionally the *application layer only*. The infrastructure layer lives in [eks-gitops-platform](https://github.com/shashankk-11/eks-gitops-platform), which:
 
-### Panels Included
-
-- **Total Health Checks**
-  - Tracks number of health checks over time
-  - Validates health checker execution
-
-- **Memory Usage**
-  - Displays application memory consumption
-  - Helps detect abnormal usage patterns
-
-- **CPU Usage**
-  - Tracks CPU utilization of the service
-  - Useful for performance analysis
-
----
-
-## 🔄 Monitoring Flow
-
-Application → /metrics → Prometheus → Grafana Dashboard
-
----
-
-## ⚙️ Running Services (EC2)
-
-| Service     | Port | Description                      |
-|------------|------|----------------------------------|
-| Application | 3000 | Node.js service (Docker)        |
-| Nginx       | 80   | Reverse proxy                   |
-| Prometheus  | 9090 | Metrics collection              |
-| Grafana     | 3001 | Metrics visualization           |
-
----
-
-
-## SRE Concepts Applied
-
-* Observability (metrics exposure)
-* Health monitoring & reliability tracking
-* Failure detection via health checks
-* Background job processing
-* Infrastructure automation (CI/CD)
-* Containerization (Docker)
-* Reverse proxy architecture (Nginx)
-
----
-
-## Known Improvements
-
-* Add input validation for `/deploy` endpoint
-* Add HTTPS with Nginx + Let's Encrypt
-* Integrate Grafana dashboards
-* Implement zero-downtime deployments
-* Push Docker images to ECR / Docker Hub
+- Provisions EKS + VPC with Terraform
+- Packages this app as a Helm chart
+- Delivers it via ArgoCD GitOps
+- Runs `kube-prometheus-stack` for cluster-wide observability
 
 ---
 
 ## Author
 
-Shashank Kulkarni
+[Shashank Kulkarni](https://linkedin.com/in/shashankulkarni) · [GitHub](https://github.com/shashankk-11)

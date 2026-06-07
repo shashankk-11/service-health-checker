@@ -6,7 +6,7 @@ const INTERVAL = 10000;
 
 let intervalRef: NodeJS.Timeout | null = null;
 
-// 🔥 Prometheus Metrics
+// Prometheus Metrics
 const healthCheckCounter = new client.Counter({
   name: "health_checks_total",
   help: "Total health checks performed",
@@ -20,7 +20,7 @@ const failureCounter = new client.Counter({
 // Collect default system metrics
 client.collectDefaultMetrics();
 
-// 🔍 Health Check Function
+// Health Check Function
 export async function checkHealth(url: string) {
   const start = Date.now();
 
@@ -43,7 +43,7 @@ export async function checkHealth(url: string) {
   }
 }
 
-// 🚀 Start Health Checker
+// Start Health Checker
 export function startHealthChecker() {
   if (intervalRef) {
     console.log("Health checker already running");
@@ -92,7 +92,7 @@ export function startHealthChecker() {
   }, INTERVAL);
 }
 
-// 🛑 Stop Health Checker
+// Stop Health Checker
 export function stopHealthChecker() {
   if (!intervalRef) {
     console.log("Health checker is not running");
@@ -105,7 +105,7 @@ export function stopHealthChecker() {
   console.log("Health checker stopped");
 }
 
-// 🔹 Run health check once (for API usage)
+// Run health check once (for API usage)
 export async function runHealthCheckOnce() {
   const services = await getServices();
 

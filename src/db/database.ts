@@ -6,7 +6,7 @@ let db: Db | null = null;
 const isTestEnv = process.env.NODE_ENV === "test";
 
 export async function connectToDatabase(): Promise<Db | null> {
-  // 🔥 Skip DB connection in test environment
+  // Skip DB connection in test environment
   if (isTestEnv) {
     return null;
   }
@@ -14,7 +14,7 @@ export async function connectToDatabase(): Promise<Db | null> {
   const uri = process.env.MONGODB_URI;
   const dbName = process.env.DB_NAME || "service_registry";
 
-  // 🔥 Fail fast in non-test environments
+  // Fail fast in non-test environments
   if (!uri) {
     throw new Error("MONGODB_URI is not defined in environment variables");
   }

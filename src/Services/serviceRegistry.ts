@@ -1,13 +1,13 @@
-import { ObjectId } from "mongodb";
+import { type Document, ObjectId } from "mongodb";
 import { connectToDatabase, getDb } from "../db/database";
 import type { Service } from "../types/Service";
 
-// 🔹 Add Service
+// Add Service
 export async function addService(name: string, url: string): Promise<Service> {
   await connectToDatabase();
   const db = getDb();
 
-  // 🔥 CHECK FOR DUPLICATE
+  // CHECK FOR DUPLICATE
   const existing = await db.collection("services").findOne({ name });
 
   if (existing) {
@@ -38,14 +38,14 @@ export async function addService(name: string, url: string): Promise<Service> {
   };
 }
 
-// 🔹 Get All Services
+// Get All Services
 export async function getServices(): Promise<Service[]> {
   await connectToDatabase();
   const db = getDb();
 
   const services = await db.collection("services").find().toArray();
 
-  return services.map((s: any) => ({
+  return services.map((s: Document) => ({
     id: s._id.toString(),
     name: s.name,
     url: s.url,
@@ -57,7 +57,7 @@ export async function getServices(): Promise<Service[]> {
   }));
 }
 
-// 🔹 Update Service Status
+// Update Service Status
 export async function updateServiceStatus(
   id: string,
   status: string,
@@ -70,7 +70,7 @@ export async function updateServiceStatus(
     .updateOne({ _id: new ObjectId(id) }, { $set: { status } });
 }
 
-// 🔥 Update Service by Name (deploy + failure simulation)
+// Update Service by Name (deploy + failure simulation)
 export async function updateServiceByName(
   name: string,
   updates: Partial<Service>,
@@ -82,9 +82,8 @@ export async function updateServiceByName(
     .collection("services")
     .findOneAndUpdate({ name }, { $set: updates }, { returnDocument: "after" });
 
-  if (!result || !result.value) return null;
-
-  const s = result.value as any;
+  if (!result?.value) return null;
+  const s = result.value as Document;
 
   return {
     id: s._id.toString(),

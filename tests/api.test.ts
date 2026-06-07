@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import express from "express";
 import request from "supertest";
 
-// 🔥 Mock DB layer
+// Mock DB layer
 mock.module("../src/Services/serviceRegistry", () => ({
   getServices: async () => [{ id: "1", name: "test", url: "https://test.com" }],
   addService: async (name: string, url: string) => ({
@@ -17,7 +17,7 @@ mock.module("../src/Services/serviceRegistry", () => ({
   }),
 }));
 
-// 🔥 Mock checker
+// Mock checker
 mock.module("../src/checker/healthChecker", () => ({
   runHealthCheckOnce: async () => [
     {
@@ -35,7 +35,7 @@ app.use(express.json());
 app.use("/", routes);
 
 describe("API Routes", () => {
-  // 🔹 Health
+  // Health
   it("GET /health should return ok", async () => {
     const res = await request(app).get("/health");
 
@@ -44,7 +44,7 @@ describe("API Routes", () => {
     expect(res.body.uptime).toBeDefined();
   });
 
-  // 🔹 Readiness
+  // Readiness
   it("GET /ready should return readiness", async () => {
     const res = await request(app).get("/ready");
 
@@ -53,14 +53,14 @@ describe("API Routes", () => {
     expect(res.body.timestamp).toBeDefined();
   });
 
-  // 🔹 Validation
+  // Validation
   it("POST /services should fail with missing fields", async () => {
     const res = await request(app).post("/services").send({});
 
     expect(res.status).toBe(400);
   });
 
-  // 🔹 Create service
+  // Create service
   it("POST /services should create service", async () => {
     const res = await request(app).post("/services").send({
       name: "service1",
@@ -71,7 +71,7 @@ describe("API Routes", () => {
     expect(res.body.name).toBe("service1");
   });
 
-  // 🔹 Get services
+  // Get services
   it("GET /services should return list", async () => {
     const res = await request(app).get("/services");
 
@@ -79,7 +79,7 @@ describe("API Routes", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  // 🔹 Health report
+  // Health report
   it("GET /health-report should return monitoring data", async () => {
     const res = await request(app).get("/health-report");
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getServices } from "../Services/serviceRegistry";
 
-// 🔍 Single health check
+// Single health check
 export async function checkHealth(url: string) {
   const start = Date.now();
 
@@ -22,7 +22,7 @@ export async function checkHealth(url: string) {
   }
 }
 
-// 🔹 Manual run (API usage)
+// Manual run (API usage)
 export async function runHealthCheckOnce() {
   const services = await getServices();
 

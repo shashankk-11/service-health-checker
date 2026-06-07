@@ -6,7 +6,7 @@ const INTERVAL = 10000;
 
 let intervalRef: NodeJS.Timeout | null = null;
 
-// 🔥 Metrics
+// Metrics
 const healthCheckCounter = new client.Counter({
   name: "health_checks_total",
   help: "Total health checks performed",
@@ -19,7 +19,7 @@ const failureCounter = new client.Counter({
 
 client.collectDefaultMetrics();
 
-// 🚀 Start scheduler
+// Start scheduler
 export function startHealthChecker() {
   if (intervalRef) {
     console.log("Health checker already running");
@@ -73,7 +73,7 @@ export function startHealthChecker() {
   }, INTERVAL);
 }
 
-// 🛑 Stop scheduler
+// Stop scheduler
 export function stopHealthChecker() {
   if (!intervalRef) {
     console.log("Health checker is not running");
