@@ -3,7 +3,6 @@ name: CI Pipeline
 on:
   pull_request:
     branches: [ main ]
-
   push:
     branches: [ main ]
 
@@ -11,13 +10,9 @@ jobs:
   build-test-lint:
     runs-on: ubuntu-latest
 
-    env:
-      MONGODB_URI: dummy
-      DB_NAME: test
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4          # upgraded from v3 — v3 is deprecated
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -29,7 +24,49 @@ jobs:
         run: bun run lint
 
       - name: Run tests
-        run: NODE_ENV=test bun test
+        run: NODE_ENV=test bun test        # no env block needed anymore
 
-      - name: Build Docker image
-        run: docker build -t service-health-checker .
+      # ── Docker ────────────────────────────────────────────────────────────
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        # Buildx is required for the cache-from/cache-to flags below.
+        # Without it you're using the legacy builder which has no layer caching.
+
+      - name: Log in to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN is automatic — no secrets to configure manually.
+          # Only runs on main pushes, not on PRs (PRs can't push to GHCR anyway).
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/shashankk-11/service-health-checker
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short
+          # Produces two tags:
+          #   ghcr.io/shashankk-11/service-health-checker:latest   (main only)
+          #   ghcr.io/shashankk-11/service-health-checker:sha-a1b2c3d  (every run)
+          # The SHA tag is what ArgoCD will reference later in the GitOps repo —
+          # it pins the exact image built from a specific commit.
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # cache-from/to uses GitHub Actions cache to store Docker layers.
+          # On a warm cache your build goes from ~40s to ~8s.
+          # push: false on PRs — builds and validates the image but doesn't publish.
+          # push: true on main — publishes to ghcr.io after merge.

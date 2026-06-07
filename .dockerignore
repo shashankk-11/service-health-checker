@@ -1,0 +1,8 @@
+node_modules
+.git
+tests
+docs
+*.md
+.github
+.env
+bun.lock
