@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 // Request logging (simple but effective)
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });

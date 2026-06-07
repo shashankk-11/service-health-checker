@@ -15,31 +15,30 @@ import {
 
 const router = Router();
 
-// 🔹 Root
-router.get("/", (req, res) => {
+// Root
+router.get("/", (_req, res) => {
   res.json({
     service: "service-health-checker",
     status: "running",
   });
 });
 
-// 🔹 Liveness probe
-router.get("/health", (req, res) => {
+// Liveness probe
+router.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     uptime: process.uptime(),
   });
 });
 
-// 🔹 Readiness probe (🔥 SRE important)
-router.get("/ready", (req, res) => {
+router.get("/ready", (_req, res) => {
   res.json({
     ready: true,
     timestamp: new Date().toISOString(),
   });
 });
 
-// 🔹 Add Service
+// Add Service
 router.post("/services", async (req, res) => {
   const { name, url } = req.body;
 
@@ -59,8 +58,8 @@ router.post("/services", async (req, res) => {
   }
 });
 
-// 🔹 Get Services
-router.get("/services", async (req, res) => {
+// Get Services
+router.get("/services", async (_req, res) => {
   try {
     const services = await getServices();
     res.json(services);
@@ -71,8 +70,8 @@ router.get("/services", async (req, res) => {
   }
 });
 
-// 🔹 Manual health check (🔥 core feature)
-router.get("/health-report", async (req, res) => {
+// Manual health check (Core feature)
+router.get("/health-report", async (_req, res) => {
   try {
     const result = await runHealthCheckOnce();
     res.json(result);
@@ -83,7 +82,7 @@ router.get("/health-report", async (req, res) => {
   }
 });
 
-// 🔹 Deploy simulation
+// Deploy simulation
 router.post("/deploy", async (req, res) => {
   const { name, version } = req.body;
 
@@ -117,20 +116,20 @@ router.post("/deploy", async (req, res) => {
   }
 });
 
-// 🔹 Start checker
-router.post("/start-health-checker", (req, res) => {
+// Start checker
+router.post("/start-health-checker", (_req, res) => {
   startHealthChecker();
   res.json({ message: "Health checker started" });
 });
 
-// 🔹 Stop checker
-router.post("/stop-health-checker", (req, res) => {
+// Stop checker
+router.post("/stop-health-checker", (_req, res) => {
   stopHealthChecker();
   res.json({ message: "Health checker stopped" });
 });
 
-// 🔹 Metrics (Prometheus)
-router.get("/metrics", async (req, res) => {
+// Metrics (Prometheus)
+router.get("/metrics", async (_req, res) => {
   try {
     res.set("Content-Type", client.register.contentType);
     res.end(await client.register.metrics());
