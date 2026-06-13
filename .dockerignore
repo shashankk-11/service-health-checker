@@ -5,4 +5,3 @@ docs
 *.md
 .github
 .env
-bun.lock
